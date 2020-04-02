@@ -16,14 +16,17 @@ typedef struct sys_of_ineq {
 }sysIneq_t;
 
 int check_potential_faces(int , point_t *);
-int check_linear_dep(sysIneq_t *, point_t , int);
+int check_linear_dep(int *);
 void print_ineq(sysIneq_t *);
 /* Global vars */
 int countIneq = 0;
+sysIneq_t *arrIneq;
 
 /* Utilities Functions */
+int NOD(int , int );
 void MemCheck(void *);
 void ClearMemory(void **, int );
+int determinate_rate_ineq(int *);
 
 int main(int argc, char *argv[]) {
 	int i, j, size, arrayPts;
@@ -62,9 +65,13 @@ int main(int argc, char *argv[]) {
 	            }
                 printf("%d %d %d\n", points[i].x,points[i].y, points[i].z);
             }
-			int p = check_potential_faces(size, points);
+			check_potential_faces(size, points);
+			printf("Number of Faces: %d\n", countIneq);	
+			print_ineq(arrIneq);
 
-
+			free(points);
+			free(arrIneq);
+			countIneq = 0;
             break;
         
         case 'H':
@@ -82,15 +89,14 @@ int main(int argc, char *argv[]) {
 /* Convex Hull (A) Functions */
 int check_potential_faces(int countPoints, point_t *Points) {
 	
-	int freeCoeff, numFaces, check, halfspace, oops, sign;
-	int i, j, k, p;
+	int freeCoeff, check, halfspace, oops, sign, rate;
+	int i, j, k, p, q;
 
+	int tmp[4];
 	// Система неравенств
-	sysIneq_t *Ineq;
-	if(!(Ineq = (sysIneq_t*)malloc(countPoints * sizeof(sysIneq_t))))
-        MemCheck(Ineq);
+	if(!(arrIneq = (sysIneq_t*)malloc(countPoints * sizeof(sysIneq_t))))
+        MemCheck(arrIneq);
 
-	numFaces = 0;
 	halfspace = 0;
 
 	// Так удобнее будет считать
@@ -117,7 +123,7 @@ int check_potential_faces(int countPoints, point_t *Points) {
 				normVect.y = vectA.z*vectB.x - vectA.x*vectB.z; // Если посмотреть на определитель
 				normVect.z = vectA.x*vectB.y - vectA.y*vectB.x; 
 				freeCoeff = normVect.x*-Points[i].x + normVect.y*-Points[i].y + normVect.z*-Points[i].z;
-			
+
 				// Смотрим на оставшиеся точки
 				halfspace = 0;
 				oops = 0;
@@ -136,63 +142,66 @@ int check_potential_faces(int countPoints, point_t *Points) {
 					if(check < 0)
 						halfspace = -1;
 				}
-		
-				int dasd = check_linear_dep(Ineq, normVect, freeCoeff);
-				printf("REZ: %d\n", dasd);
-				if((!dasd) && (!oops)) {
+
+				tmp[0] = normVect.x;
+				tmp[1] = normVect.y;
+				tmp[2] = normVect.z;
+				tmp[3] = freeCoeff;
+
+				if(!(check_linear_dep(tmp)) && (!oops)) {
 					if(halfspace > 0)
 						sign = -1;
 					else
-						sign = 1;
+						if(halfspace < 0)
+							sign = 1;
 
-					Ineq[countIneq].coeff[0] = sign*normVect.x;
-					Ineq[countIneq].coeff[1] = sign*normVect.y;
-					Ineq[countIneq].coeff[2] = sign*normVect.z;
-					Ineq[countIneq].coeff[3] = sign*freeCoeff;
+					rate = determinate_rate_ineq(tmp);
+					if(rate != 0)
+						for(q = 0; q < 4; q++)
+							tmp[q] /= rate;
+
+					arrIneq[countIneq].coeff[0] = sign*tmp[0];
+					arrIneq[countIneq].coeff[1] = sign*tmp[1];
+					arrIneq[countIneq].coeff[2] = sign*tmp[2];
+					arrIneq[countIneq].coeff[3] = sign*tmp[3];
 					countIneq++;
-					printf("COUNT: %d\n",countIneq);
 				}
 				
 			}
 		}
 	}	
-	printf("\n***********\n");
-	print_ineq(Ineq);
-	printf("Number of Faces: %d\n", numFaces);	
+
 	return 0;
 }
 
 void print_ineq(sysIneq_t *Ineq) {
 	int i, j;
 	char ch[] = {'x', 'y', 'z', '\0'};
-
+	
 	for(i = 0; i < countIneq; i++) {
 		for(j = 0; j < 3; j++) {
 			if(Ineq[i].coeff[j] != 0) {
 				if(Ineq[i].coeff[j] == 1 && j != 0)
-					printf("+ %c ", ch[j]);
+					printf("+%c", ch[j]);
 
 				if(Ineq[i].coeff[j] == 1 && j == 0)
-					printf(" %c ", ch[j]);
+					printf("%c", ch[j]);
 
 				if(Ineq[i].coeff[j] == -1)
-					printf("- %c ", ch[j]);
+					printf("-%c", ch[j]);
 				
 				if(Ineq[i].coeff[j] > 1 && j != 0)
-					printf("+ %d%c ", Ineq[i].coeff[j], ch[j]);
+					printf("+%d%c", Ineq[i].coeff[j], ch[j]);
 				
 				if(Ineq[i].coeff[j] > 1 && j == 0)
-					printf(" %d%c ", Ineq[i].coeff[j], ch[j]);
+					printf("%d%c", Ineq[i].coeff[j], ch[j]);
 
 				if(Ineq[i].coeff[j] < -1)
-					printf(" %d%c ", Ineq[i].coeff[j], ch[j]);
-				
-
-				
+					printf("%d%c", Ineq[i].coeff[j], ch[j]);		
 			}
 		}
 		// Минус так как переносим в правую часть неравенства
-		printf("<= %d\n", -Ineq[i].coeff[3]);
+		printf("<=%d\n", -Ineq[i].coeff[3]);
 	}
 }
 
@@ -205,27 +214,37 @@ int NOD(int a, int b) {
 		return NOD(a, b-a);
 }
 
+int determinate_rate_ineq(int *tmp) {
+	int rate;
+
+	rate = NOD(NOD(abs(tmp[0]), abs(tmp[1])), NOD(abs(tmp[2]), abs(tmp[3])));
+	return rate;
+}
+
 // Проверка линейной зависимости 
-int check_linear_dep(sysIneq_t *arrIneq, point_t normali, int freeCoeff) {
-	int i, j, k, count;
-	int rate1, rate2;
+int check_linear_dep(int *tmp) {
+	int i, j, count1, count2, rate;
+
+	rate = determinate_rate_ineq(tmp);
 	
-	sysIneq_t tmp; 
-	tmp.coeff[0] = normali.x;
-	tmp.coeff[1] = normali.y;
-	tmp.coeff[2] = normali.z;
-	tmp.coeff[3] = freeCoeff;
-	rate1 = NOD(NOD(abs(tmp.coeff[0]), abs(tmp.coeff[1])), NOD(abs(tmp.coeff[2]), abs(tmp.coeff[3])));
+	if(!rate) 
+		return 1;
 
 	for(i = 0; i < countIneq; i++) {
+		count1 = 0;
+		count2 = 0;
 		for(j = 0; j < 4; j++) {
-			if((tmp.coeff[j]/rate1) == (arrIneq[i].coeff[j] /= rate1))
-				count++;
+			if((tmp[j] / rate) == arrIneq[i].coeff[j])
+				count1++;
+			
+			if(tmp[j] == arrIneq[i].coeff[j])
+				count2++;
 		}
-		if(count == 4)
+		if(count1 == 4 || count2 == 4)
 			return 1;
-	}
-
+		
+	}	
+	
 	return 0;
 }
 
