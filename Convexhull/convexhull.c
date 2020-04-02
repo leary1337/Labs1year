@@ -3,16 +3,23 @@
 #include <ctype.h>
 #include <math.h>
 #include <locale.h>
+#define OK 1
+#define NOT_OK 0
 
 /* Point designation */
 typedef struct point {
     int x, y, z;
 }point_t;
 
+typedef struct sys_of_ineq {
+	int coeff[4];
+}sysIneq_t;
 
 int check_potential_faces(int , point_t *);
+int check_linear_dep(sysIneq_t *, point_t , int);
+void print_ineq(sysIneq_t *);
 /* Global vars */
-
+int countIneq = 0;
 
 /* Utilities Functions */
 void MemCheck(void *);
@@ -44,8 +51,8 @@ int main(int argc, char *argv[]) {
     switch(modeWork) {
         case 'V':
             printf("\nSelected type V\n");
-            points = (point_t*)malloc(size * sizeof(point_t));
-            MemCheck(points);
+            if(!(points = (point_t*)malloc(size * sizeof(point_t))))
+            	MemCheck(points);
             
             // Input and Output Dots
             for(i = 0; i < size; i++) {
@@ -74,19 +81,30 @@ int main(int argc, char *argv[]) {
 
 /* Convex Hull (A) Functions */
 int check_potential_faces(int countPoints, point_t *Points) {
-	// abcd - коэффициенты уравнения плоскости
-	int check, problem, freeCoef;
-	int i, j, k;
+	
+	int freeCoeff, numFaces, check, halfspace, oops, sign;
+	int i, j, k, p;
+
+	// Система неравенств
+	sysIneq_t *Ineq;
+	if(!(Ineq = (sysIneq_t*)malloc(countPoints * sizeof(sysIneq_t))))
+        MemCheck(Ineq);
+
+	numFaces = 0;
+	halfspace = 0;
+
 	// Так удобнее будет считать
 	point_t vectA, vectB, normVect;
 
 	for(i = 0; i < countPoints; i++) {
-		for(j = i+1; j < countPoints; j++) {
+		for(j = 0; j < countPoints; j++) {
+			if(j == i) continue;
 			vectA.x = Points[j].x - Points[i].x;
 			vectA.y = Points[j].y - Points[i].y;
 			vectA.z = Points[j].z - Points[i].z;
 
-			for(k = j+1; k < countPoints; k++) {
+			for(k = 0; k < countPoints; k++) {
+				if(k == j || k == i) continue;
 				vectB.x = Points[k].x - Points[i].x;
 				vectB.y = Points[k].y - Points[i].y;
 				vectB.z = Points[k].z - Points[i].z;
@@ -98,12 +116,117 @@ int check_potential_faces(int countPoints, point_t *Points) {
 				normVect.x = vectA.y*vectB.z - vectA.z*vectB.y; 
 				normVect.y = vectA.z*vectB.x - vectA.x*vectB.z; // Если посмотреть на определитель
 				normVect.z = vectA.x*vectB.y - vectA.y*vectB.x; 
-				freeCoef = normVect.x*Points[i].x + normVect.y*Points[i].y + normVect.z*Points[i].z;
+				freeCoeff = normVect.x*-Points[i].x + normVect.y*-Points[i].y + normVect.z*-Points[i].z;
+			
+				// Смотрим на оставшиеся точки
+				halfspace = 0;
+				oops = 0;
+				for(p = 0; p < countPoints; p++) {
+					if(p == k || p == i || p == j) continue;
+					// Подставим точку в наше уравнение плоскости
+					check = normVect.x*Points[p].x + normVect.y*Points[p].y + normVect.z*Points[p].z + freeCoeff;
+					
+					// Проверяем в каком полупространстве лежат оставшиеся точки	
+					if((halfspace == 1 && check < 0) || (halfspace == -1 && check > 0)) {
+						oops = 1;
+						break;
+					}
+					if(check > 0) 
+						halfspace = 1;
+					if(check < 0)
+						halfspace = -1;
+				}
+		
+				int dasd = check_linear_dep(Ineq, normVect, freeCoeff);
+				printf("REZ: %d\n", dasd);
+				if((!dasd) && (!oops)) {
+					if(halfspace > 0)
+						sign = -1;
+					else
+						sign = 1;
+
+					Ineq[countIneq].coeff[0] = sign*normVect.x;
+					Ineq[countIneq].coeff[1] = sign*normVect.y;
+					Ineq[countIneq].coeff[2] = sign*normVect.z;
+					Ineq[countIneq].coeff[3] = sign*freeCoeff;
+					countIneq++;
+					printf("COUNT: %d\n",countIneq);
+				}
 				
 			}
 		}
+	}	
+	printf("\n***********\n");
+	print_ineq(Ineq);
+	printf("Number of Faces: %d\n", numFaces);	
+	return 0;
+}
+
+void print_ineq(sysIneq_t *Ineq) {
+	int i, j;
+	char ch[] = {'x', 'y', 'z', '\0'};
+
+	for(i = 0; i < countIneq; i++) {
+		for(j = 0; j < 3; j++) {
+			if(Ineq[i].coeff[j] != 0) {
+				if(Ineq[i].coeff[j] == 1 && j != 0)
+					printf("+ %c ", ch[j]);
+
+				if(Ineq[i].coeff[j] == 1 && j == 0)
+					printf(" %c ", ch[j]);
+
+				if(Ineq[i].coeff[j] == -1)
+					printf("- %c ", ch[j]);
+				
+				if(Ineq[i].coeff[j] > 1 && j != 0)
+					printf("+ %d%c ", Ineq[i].coeff[j], ch[j]);
+				
+				if(Ineq[i].coeff[j] > 1 && j == 0)
+					printf(" %d%c ", Ineq[i].coeff[j], ch[j]);
+
+				if(Ineq[i].coeff[j] < -1)
+					printf(" %d%c ", Ineq[i].coeff[j], ch[j]);
+				
+
+				
+			}
+		}
+		// Минус так как переносим в правую часть неравенства
+		printf("<= %d\n", -Ineq[i].coeff[3]);
+	}
+}
+
+int NOD(int a, int b) {
+	if(a == 0 || b == 0)
+		return a+b;
+	if(a > b)
+		return NOD(a-b, b);
+	else
+		return NOD(a, b-a);
+}
+
+// Проверка линейной зависимости 
+int check_linear_dep(sysIneq_t *arrIneq, point_t normali, int freeCoeff) {
+	int i, j, k, count;
+	int rate1, rate2;
+	
+	sysIneq_t tmp; 
+	tmp.coeff[0] = normali.x;
+	tmp.coeff[1] = normali.y;
+	tmp.coeff[2] = normali.z;
+	tmp.coeff[3] = freeCoeff;
+	rate1 = NOD(NOD(abs(tmp.coeff[0]), abs(tmp.coeff[1])), NOD(abs(tmp.coeff[2]), abs(tmp.coeff[3])));
+
+	for(i = 0; i < countIneq; i++) {
+		for(j = 0; j < 4; j++) {
+			if((tmp.coeff[j]/rate1) == (arrIneq[i].coeff[j] /= rate1))
+				count++;
+		}
+		if(count == 4)
+			return 1;
 	}
 
+	return 0;
 }
 
 /* Utilities Functions */
