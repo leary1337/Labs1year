@@ -20,17 +20,20 @@ typedef struct inequal {
 int countIneq = 0, countPoints = 0;
 Inequal_t* arrIneq;
 point_t* setPoints;
+point_t tmpPoint;
+double* x;
 
 /* Convex Hull (A) Functions */
 // Face finding function
-int check_potential_faces(int, point_t*);
+int check_potential_faces(int);
 // The function of finding the ratio of the inequality coefficients
 int determinate_rate_ineq(int*);
 // Linear inequality check function
 int check_linear_dep(int*);
 
-point_t Calc_Point(Inequal_t , Inequal_t , Inequal_t );
+int Calc_Point(Inequal_t , Inequal_t , Inequal_t );
 void vertex_enumeration();
+
 /* Utilities Functions */
 // Input Files (main func)
 int inputFiles(int , char* );
@@ -41,20 +44,27 @@ void MemCheck(void*);
 // Input inequality
 void print_ineq(Inequal_t*);
 int Gauss(int**, int*, int);
-int Transponir(int** , int );
+
 
 int main(int argc, char* argv[]) {
 	inputFiles(argc, argv);
 
-	free(arrIneq);
-	free(setPoints);
+	if (setPoints != NULL) {
+		free(setPoints);
+		setPoints = NULL;
+	}
+	if (arrIneq != NULL) {
+		free(arrIneq);
+		arrIneq = NULL;
+	}
+	
 	return 0;
 }
 
 int inputFiles(int argc, char* argv[]) {
 	int i, j, size;
 	char modeWork;
-	point_t *points;
+	point_t points;
 	Inequal_t tmp;
 	int **arrayTemp;
 
@@ -82,24 +92,24 @@ int inputFiles(int argc, char* argv[]) {
 		case 'V':
 			printf("\nSelected type V\n");
 
-			points = (point_t*)malloc(size * sizeof(point_t));
-			MemCheck(points);
+			setPoints = (point_t*)malloc(size * sizeof(point_t));
+			MemCheck(setPoints);
 
 			// Input and Output Dots
 			for (i = 0; i < size; i++) {
-				if (!(fscanf(fp, "%d%d%d", &points[i].x, &points[i].y, &points[i].z))) {
+				if (!(fscanf(fp, "%d%d%d", &points.x, &points.y, &points.z))) {
 					printf("\nIncorrect coordinate\n");
 					return 1;
 				}
-				printf("%d %d %d\n", points[i].x, points[i].y, points[i].z);
+				setPoints[i].x = points.x;
+				setPoints[i].y = points.y;
+				setPoints[i].z = points.z;
+				printf("%d %d %d\n", setPoints[i].x, setPoints[i].y, setPoints[i].z);
 			}
-			check_potential_faces(size, points);
+			check_potential_faces(size);
 			printf("Number of Faces: %d\n", countIneq);
 			print_ineq(arrIneq);
 
-			// Memory cleaning
-			free(points);
-			points = NULL;
 			countIneq = 0;
 			break;
 
@@ -108,7 +118,7 @@ int inputFiles(int argc, char* argv[]) {
 			printf("\nSelected type H\n");
 
 			arrIneq = (Inequal_t*)malloc(size * sizeof(Inequal_t));
-			MemCheck(arrIneq);
+			if (!arrIneq) return 1;
 
 			countIneq = size;
 
@@ -117,9 +127,10 @@ int inputFiles(int argc, char* argv[]) {
 					printf("\nIncorrect coefficient\n");
 					return 1;
 				}
-				for (j = 0; j < 4; j++) {
+				for (j = 0; j < 3; j++) {
 					arrIneq[i].coeff[j] = tmp.coeff[j];
 				}
+				arrIneq[i].coeff[3] = tmp.coeff[3];
 				
 			}
 			print_ineq(arrIneq);
@@ -146,7 +157,7 @@ int inputFiles(int argc, char* argv[]) {
 }
 
 /* Convex Hull (A) Functions */
-int check_potential_faces(int countPoints, point_t* Points) {
+int check_potential_faces(int countPoints) {
 
 	int freeCoeff, check, halfspace, oops, sign, rate;
 	int i, j, k, p, q;
@@ -165,15 +176,15 @@ int check_potential_faces(int countPoints, point_t* Points) {
 	for (i = 0; i < countPoints; i++) {
 		for (j = 0; j < countPoints; j++) {
 			if (j == i) continue;
-			vectA.x = Points[j].x - Points[i].x;
-			vectA.y = Points[j].y - Points[i].y;
-			vectA.z = Points[j].z - Points[i].z;
+			vectA.x = setPoints[j].x - setPoints[i].x;
+			vectA.y = setPoints[j].y - setPoints[i].y;
+			vectA.z = setPoints[j].z - setPoints[i].z;
 
 			for (k = 0; k < countPoints; k++) {
 				if (k == j || k == i) continue;
-				vectB.x = Points[k].x - Points[i].x;
-				vectB.y = Points[k].y - Points[i].y;
-				vectB.z = Points[k].z - Points[i].z;
+				vectB.x = setPoints[k].x - setPoints[i].x;
+				vectB.y = setPoints[k].y - setPoints[i].y;
+				vectB.z = setPoints[k].z - setPoints[i].z;
 				/*
 							   | x   y   z |
 				vectA x vectB: |vA1 vA2 vA3| = ax+by+cz
@@ -182,7 +193,7 @@ int check_potential_faces(int countPoints, point_t* Points) {
 				normVect.x = vectA.y * vectB.z - vectA.z * vectB.y;
 				normVect.y = vectA.z * vectB.x - vectA.x * vectB.z; // Если посмотреть на определитель
 				normVect.z = vectA.x * vectB.y - vectA.y * vectB.x;
-				freeCoeff = normVect.x * -Points[i].x + normVect.y * -Points[i].y + normVect.z * -Points[i].z;
+				freeCoeff = normVect.x * -setPoints[i].x + normVect.y * -setPoints[i].y + normVect.z * -setPoints[i].z;
 
 				// Смотрим на оставшиеся точки
 				halfspace = 0;
@@ -190,7 +201,7 @@ int check_potential_faces(int countPoints, point_t* Points) {
 				for (p = 0; p < countPoints; p++) {
 					if (p == k || p == i || p == j) continue;
 					// Подставим точку в наше уравнение плоскости
-					check = normVect.x * Points[p].x + normVect.y * Points[p].y + normVect.z * Points[p].z + freeCoeff;
+					check = normVect.x * setPoints[p].x + normVect.y * setPoints[p].y + normVect.z * setPoints[p].z + freeCoeff;
 
 					// Проверяем в каком полупространстве лежат оставшиеся точки	
 					if ((halfspace == 1 && check < 0) || (halfspace == -1 && check > 0)) {
@@ -263,20 +274,39 @@ int check_linear_dep(int* tmp) {
 
 /* Vertex Enumeration (B1) Functions */
 void vertex_enumeration() {
-	int i, j, p;
+	int i, j, p, check;
+	int** arrayTemp, *b;
 	point_t point;
 	
 	setPoints = (point_t*)malloc(countIneq * sizeof(point_t));
-	MemCheck(setPoints);
+	if (!setPoints) return;
+
+	b = (int*)malloc(3 * sizeof(int));
+	if (!b) return;
+
+	arrayTemp = (int**)malloc(3 * sizeof(int));
+	if (!arrayTemp) return;
+	for (i = 0; i < 3; i++) {
+		arrayTemp[i] = (int*)malloc(4 * sizeof(int));
+		if (!arrayTemp[i]) return;
+	}
+
+	x = (double*)malloc(3 * sizeof(double));
+	if (!x) return;
 
 	for (i = 0; i < countIneq; i++) {
 		for (j = 0; j < countIneq; j++) {
 			if (j <= i) continue;
 			for (p = 0; p < countIneq; p++) {
 				if (p <= j || p <= i) continue;
-				point = Calc_Point(arrIneq[i], arrIneq[j], arrIneq[p]);
-				setPoints[countPoints] = point;
-				countPoints++;
+
+				if (check = Calc_Point(arrIneq[i], arrIneq[j], arrIneq[p], arrayTemp, b))
+					continue;
+				else
+					if(!check_ident_point(tmpPoint)) {
+						setPoints[countPoints] = tmpPoint;
+						countPoints++;
+					}
 			}
 		}
 	}
@@ -284,23 +314,25 @@ void vertex_enumeration() {
 	for (i = 0; i < countPoints; i++)
 		printf("%d %d %d\n", setPoints[i].x, setPoints[i].y, setPoints[i].z);
 
+	for (i = 0; i < 3; i++)
+		free(arrayTemp[i]);
+	free(arrayTemp);
+	
 }
 
-point_t Calc_Point(Inequal_t ineq1, Inequal_t ineq2, Inequal_t ineq3) {
-	int i, j;
-	int** arrayTemp, *b, *x;
-	point_t Point;
+int check_ident_point(point_t point) {
+	int i;
 
-	b = (int*)malloc(3 * sizeof(int));
-	MemCheck(b);
-
-	arrayTemp = (int**)malloc(3 * sizeof(int));
-	MemCheck(arrayTemp);
-
-	for (i = 0; i < 3; i++) {
-		arrayTemp[i] = (int*)malloc(3 * sizeof(int));
-		MemCheck(arrayTemp[i]);
+	for (i = 0; i < countPoints; i++) {
+		if (setPoints[i].x == point.x && setPoints[i].y == point.y && setPoints[i].z == point.z)
+			return 1;
 	}
+
+	return 0;
+}
+
+int Calc_Point(Inequal_t ineq1, Inequal_t ineq2, Inequal_t ineq3, int** arrayTemp, int *b) {
+	int i, j;
 
 	for (j = 0; j < 3; j++) {
 		arrayTemp[0][j] = ineq1.coeff[j];
@@ -311,23 +343,24 @@ point_t Calc_Point(Inequal_t ineq1, Inequal_t ineq2, Inequal_t ineq3) {
 	b[1] = ineq2.coeff[3];
 	b[2] = ineq3.coeff[3];
 
-	x = Gauss(arrayTemp, b, 3);
-
-	Point.x = x[0];
-	Point.y = x[1];
-	Point.z = x[2];
-
-	return Point;
+	if (Gauss(arrayTemp, b, 3)) {
+		return 1;
+	}
+	else {
+		tmpPoint.x = x[0];
+		tmpPoint.y = x[1];
+		tmpPoint.z = x[2];
+	}
+	
+	return 0;
 }
 
 int Gauss(int** a, int *b, int n) {
-	int i, j, k, max, cf;
+	int i, j, k, cf, check;
 	int idx;
-	int* x;
 	double EPS = 0.00001;
-	
-	x = (int*)malloc(n * sizeof(int));
-	MemCheck(x);
+	double max;
+	check = 0;
 	
 	k = 0;
 	while (k < n) {
@@ -341,7 +374,7 @@ int Gauss(int** a, int *b, int n) {
 		}
 
 		if (max < EPS)
-			return 0;
+			return 1;
 
 		for (j = 0; j < n; j++)
 			swap(int, a[k][j], a[idx][j]);
@@ -369,7 +402,8 @@ int Gauss(int** a, int *b, int n) {
 		for (int i = 0; i < k; i++)
 			b[i] = b[i] - a[i][k] * x[k];
 	}
-	return x;
+	
+	return 0;
 }
 
 
@@ -419,16 +453,5 @@ void MemCheck(void *mem) {
 		exit(0);
 	}
 }
-int Transponir(int** A, int size) {
-	int i, j, ** B;
 
-	B = (int**)malloc(size * sizeof(int*));
-	MemCheck(B);
-	for (i = 0; i < size; i++) {
-		B[i] = (int)malloc(size * sizeof(int));
-		MemCheck(B[i]);
-		for (j = 0; j < size; j++)
-			B[i][j] = A[j][i];
-	}
-	return B;
-}
+ 
