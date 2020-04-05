@@ -1,109 +1,68 @@
 /*
-*   Задание 1.3. Нестандартное применение одномерных массивов
-*   Король, №2, поле №8
-*   Калабин Данил
-*   ИВТ-13БО
+*   Task: 1.3. Custom use of one-dimensional arrays
+*   King, #2, field #8
+*   Author: Kalabin Danil
+*   Group: IVT-13BO
 */
-#include <stdio.h>
+
+/*  TESTS: 
+* INPUT:
+*   4 1 16
+* OUTPUT: 
+*   1 3 7 13 14 15 16
+********************    
+* INPUT:
+*   4 16 1
+* OUTPUT: 
+*   16 15 9 8 4 3 1
+********************
+* INPUT:
+*   4 1 16
+* OUTPUT: 
+*   1 3 7 13 14 15 16 
+********************
+* INPUT:
+*   s
+* OUTPUT: 
+*   Invalid row count 
+*/
+
+#include <stdio.h> 
 #include <stdlib.h>
+#include "stepKing.h"
 
-
-// Ищет в какой строке указанный элемент
-int searchStrEl(int *A,int strs, int elem) {
-    int i, str, indR, indL;
-
-    for(i = 0; i <= strs; i++) {
-        indR = i*i-1;
-        indL = (i-1)*(i-1);
-        
-        if(elem >= indL && elem <= indR)
-            str = i;
-    }
-
-    return str;
-}
-
-// Проверка элемента на крайность
-int idxCheck(int currStr, int el) {
-    int ind;
-
-    ind = (currStr-1)*(currStr-1);
-    
-    // Проверка на левый крайний
-    if(ind == el)
-        return 1;
-    
-    // Проверка на правый крайний
-    ind += (currStr-1)*2;
-    if(ind == el)
-        return 2;
-
-    // Ни левый крайний и не правый
-    return 0;    
-}
-
-// Функция хода фигуры
-void step(int *A, int n, int a, int b) {
-    int strFinish, currStr;
-
-    printf("%d ", A[a]);
-    strFinish = searchStrEl(A, n, b);
-
-    currStr = searchStrEl(A, n, a);
-    if(currStr == strFinish) {
-        if(a == b)
-            return;
-
-        if(a < b)
-            step(A,n,++a,b);
-
-        if(a > b)
-            step(A,n,--a,b);
-    }
-    if(currStr < strFinish) {
-        a += currStr*2;
-        currStr++;
-        step(A,n,a,b);
-    }
-    if(currStr > strFinish) {
-        if(idxCheck(currStr, a) == 1) {
-            a++;
-            printf("%d ", A[a]);
-        }
-        
-        if(idxCheck(currStr, a) == 2) {
-            a--;
-            printf("%d ", A[a]);
-        }        
-
-        currStr--;
-        a -= currStr*2;
-        step(A,n,a,b);
-    }
-}
-
-void main() {
+int main() {
     int i, start, finish, str, x, countEl, *A;
 
-    printf("Введите кол-во строк поля\n");
-    if(!(scanf("%d", &str)) || !str)
-        return;
-    
-    // Всего элементов на поле
+    printf("Enter the number of lines in the field:\n");
+    if(!(scanf("%d", &str)) || !str) {
+        printf("Invalid row count\n");
+        return 1;
+    }
+
+    // Total items on the field
     countEl = str*str;
 
-    printf("Введите начальное положение\n");
-    if(!(scanf("%d", &start)) || start <= 0 || start > countEl)
-        return;
+    printf("Enter the START position:\n");
+    if(!(scanf("%d", &start)) || start <= 0 || start > countEl) {
+        printf("Invalid start position\n");
+        return 1;
+    }
 
-    printf("Введите конечное положение\n");
-    if(!(scanf("%d", &finish)) || finish <= 0 || finish > countEl)
-        return;
+    printf("Enter the END position:\n");
+    if(!(scanf("%d", &finish)) || finish <= 0 || finish > countEl) {
+        printf("Invalid end position\n");
+        return 1;
+    }
     start -= 1;
     finish -= 1;
 
-    if(!(A = (int*)malloc(countEl * sizeof(int))))
-        return;
+    // Memory allocation for field numbers
+    if(!(A = (int*)malloc(countEl * sizeof(int)))) {
+        printf("Memory isn't allocated\n");
+        return 1;
+    }
+    // Filling the field with numbers
     x = 0;
     for (i = 0; i < countEl; i++) 
         A[i] = ++x;
@@ -111,5 +70,5 @@ void main() {
     step(A,str,start,finish);
 
     free(A);
-    return;
+    return 0;
 }
