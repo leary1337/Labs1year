@@ -31,8 +31,11 @@ int determinate_rate_ineq(int*);
 // Linear inequality check function
 int check_linear_dep(int*);
 
+/* Vertex Enumeration (B1) Functions */
 int Calc_Point(Inequal_t , Inequal_t , Inequal_t );
 void vertex_enumeration();
+int check_ident_point(point_t );
+int Gauss(int**, int*, int);
 
 /* Utilities Functions */
 // Input Files (main func)
@@ -43,20 +46,12 @@ int NOD(int, int);
 void MemCheck(void*);
 // Input inequality
 void print_ineq(Inequal_t*);
-int Gauss(int**, int*, int);
+
 
 
 int main(int argc, char* argv[]) {
 	inputFiles(argc, argv);
-
-	if (setPoints != NULL) {
-		free(setPoints);
-		setPoints = NULL;
-	}
-	if (arrIneq != NULL) {
-		free(arrIneq);
-		arrIneq = NULL;
-	}
+	
 	
 	return 0;
 }
@@ -93,7 +88,7 @@ int inputFiles(int argc, char* argv[]) {
 			printf("\nSelected type V\n");
 
 			setPoints = (point_t*)malloc(size * sizeof(point_t));
-			MemCheck(setPoints);
+			if (!setPoints) return 1;
 
 			// Input and Output Dots
 			for (i = 0; i < size; i++) {
@@ -130,9 +125,10 @@ int inputFiles(int argc, char* argv[]) {
 				for (j = 0; j < 3; j++) {
 					arrIneq[i].coeff[j] = tmp.coeff[j];
 				}
-				arrIneq[i].coeff[3] = tmp.coeff[3];
+				arrIneq[i].coeff[3] = -tmp.coeff[3];
 				
 			}
+			printf("Number of Faces: %d\n", countIneq);
 			print_ineq(arrIneq);
 			
 			vertex_enumeration();
@@ -282,17 +278,17 @@ void vertex_enumeration() {
 	if (!setPoints) return;
 
 	b = (int*)malloc(3 * sizeof(int));
-	if (!b) return;
+	MemCheck(b);
 
 	arrayTemp = (int**)malloc(3 * sizeof(int));
-	if (!arrayTemp) return;
+	MemCheck(arrayTemp);
 	for (i = 0; i < 3; i++) {
 		arrayTemp[i] = (int*)malloc(4 * sizeof(int));
-		if (!arrayTemp[i]) return;
+		MemCheck(arrayTemp[i]);
 	}
 
 	x = (double*)malloc(3 * sizeof(double));
-	if (!x) return;
+	MemCheck(x);
 
 	for (i = 0; i < countIneq; i++) {
 		for (j = 0; j < countIneq; j++) {
@@ -314,12 +310,8 @@ void vertex_enumeration() {
 	for (i = 0; i < countPoints; i++)
 		printf("%d %d %d\n", setPoints[i].x, setPoints[i].y, setPoints[i].z);
 
-	for (i = 0; i < 3; i++)
-		free(arrayTemp[i]);
-	free(arrayTemp);
 	
 }
-
 int check_ident_point(point_t point) {
 	int i;
 
@@ -330,7 +322,6 @@ int check_ident_point(point_t point) {
 
 	return 0;
 }
-
 int Calc_Point(Inequal_t ineq1, Inequal_t ineq2, Inequal_t ineq3, int** arrayTemp, int *b) {
 	int i, j;
 
@@ -354,7 +345,6 @@ int Calc_Point(Inequal_t ineq1, Inequal_t ineq2, Inequal_t ineq3, int** arrayTem
 	
 	return 0;
 }
-
 int Gauss(int** a, int *b, int n) {
 	int i, j, k, cf, check;
 	int idx;
