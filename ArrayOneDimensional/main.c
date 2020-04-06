@@ -32,25 +32,25 @@
 #include "stepKing.h"
 
 int main() {
-    int i, start, finish, str, x, countEl, *A;
+    int i, start, finish, countLines, x, countElements, *arrayField;
 
     printf("Enter the number of lines in the field:\n");
-    if(!(scanf("%d", &str)) || !str) {
+    if(!(scanf("%d", &countLines)) || !countLines) {
         printf("Invalid row count\n");
         return 1;
     }
 
     // Total items on the field
-    countEl = str*str;
+    countElements = countLines*countLines;
 
-    printf("Enter the START position:\n");
-    if(!(scanf("%d", &start)) || start <= 0 || start > countEl) {
+    printf("Enter the START position (1 to %d):\n", countElements);
+    if(!(scanf("%d", &start)) || start <= 0 || start > countElements) {
         printf("Invalid start position\n");
         return 1;
     }
 
     printf("Enter the END position:\n");
-    if(!(scanf("%d", &finish)) || finish <= 0 || finish > countEl) {
+    if(!(scanf("%d", &finish)) || finish <= 0 || finish > countElements) {
         printf("Invalid end position\n");
         return 1;
     }
@@ -58,17 +58,18 @@ int main() {
     finish -= 1;
 
     // Memory allocation for field numbers
-    if(!(A = (int*)malloc(countEl * sizeof(int)))) {
+    if(!(arrayField = (int*)malloc(countElements * sizeof(int)))) {
         printf("Memory isn't allocated\n");
         return 1;
     }
     // Filling the field with numbers
     x = 0;
-    for (i = 0; i < countEl; i++) 
-        A[i] = ++x;
+    for (i = 0; i < countElements; i++) 
+        arrayField[i] = ++x;
 
-    step(A,str,start,finish);
+    step(arrayField,countLines,start,finish);
 
-    free(A);
+    // Cleaning memory
+    free(arrayField);
     return 0;
 }
