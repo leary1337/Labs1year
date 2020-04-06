@@ -6,24 +6,24 @@
 #include <locale.h>
 #define swap(t,a,b) {t temp; temp = a; a = b; b = temp;}
 
-/* Point designation */
+	/* Point designation */
 typedef struct point {
 	int x, y, z;
 }point_t;
 
-/* Inequality designation */
+	/* Inequality designation */
 typedef struct inequal {
 	int coeff[4];
 }Inequal_t;
 
-/* Global vars */
+	/* Global vars */
 int countIneq = 0, countPoints = 0;
 Inequal_t* arrIneq;
 point_t* setPoints;
 point_t tmpPoint;
 double* x;
 
-/* Convex Hull (A) Functions */
+	/* Convex Hull (A) Functions */
 // Face finding function
 int check_potential_faces(int);
 // The function of finding the ratio of the inequality coefficients
@@ -31,13 +31,13 @@ int determinate_rate_ineq(int*);
 // Linear inequality check function
 int check_linear_dep(int*);
 
-/* Vertex Enumeration (B1) Functions */
+	/* Vertex Enumeration (B1) Functions */
 int Calc_Point(Inequal_t , Inequal_t , Inequal_t, int**, int* );
 void vertex_enumeration();
 int check_ident_point(point_t );
 int Gauss(int**, int*, int);
 
-/* Utilities Functions */
+	/* Utilities Functions */
 // Input Files (main func)
 int inputFiles(int , char** );
 // NOD search
@@ -54,7 +54,15 @@ void print_points();
 int main(int argc, char* argv[]) {
 	inputFiles(argc, argv);
 	
+	if(!setPoints) {
+		free(setPoints);
+		setPoints = NULL;
+	}
 	
+	if(!arrIneq) {
+		free(arrIneq);
+		arrIneq = NULL;
+	}
 	return 0;
 }
 
@@ -63,7 +71,6 @@ int inputFiles(int argc, char* argv[]) {
 	char modeWork;
 	point_t points;
 	Inequal_t tmp;
-	int **arrayTemp;
 
 	FILE *fp = NULL;
 
@@ -142,12 +149,6 @@ int inputFiles(int argc, char* argv[]) {
 			printf("\nType not selected or invalid type\n");
 			return 1;
 		}
-
-		/*
-		vertexEnum(f, typeIn);
-		// Строим граф
-		skeleton();
-		*/
 	}
 
 	fclose(fp);
@@ -308,23 +309,13 @@ void vertex_enumeration() {
 			}
 		}
 	}
+
+	free(b);
+	free(x);
+	for(i = 0; i < 3; i++) 
+		free(arrayTemp[i]);
+	free(arrayTemp);
 }
-void print_points() {
-	int i;
-
-	// Normalization of coordinates of points
-	for(i = 0; i < countPoints; i++) {
-		if(setPoints[i].x <= 0 && setPoints[i].y <= 0 && setPoints[i].z <= 0) {
-			setPoints[i].x *= -1;
-			setPoints[i].y *= -1;
-			setPoints[i].z *= -1;
-		}
-	}
-
-	for (i = 0; i < countPoints; i++)
-		printf("%d %d %d\n", setPoints[i].x, setPoints[i].y, setPoints[i].z);
-}
-
 int check_ident_point(point_t point) {
 	int i;
 
@@ -412,6 +403,25 @@ int Gauss(int** a, int *b, int n) {
 
 
 /* Utilities Functions */
+void print_points() {
+	int i, j;
+	char ch = 65;
+
+	// Normalization of coordinates of points
+	for(i = 0; i < countPoints; i++) {
+		if(setPoints[i].x <= 0 && setPoints[i].y <= 0 && setPoints[i].z <= 0) {
+			setPoints[i].x *= -1;
+			setPoints[i].y *= -1;
+			setPoints[i].z *= -1;
+		}
+	}
+	if(countPoints < 27)
+		for (i = 0; i < countPoints; i++)
+			printf("%c: %d %d %d\n", ch++ , setPoints[i].x, setPoints[i].y, setPoints[i].z);
+	else
+		for (i = 0, j = 1; i < countPoints; i++)
+			printf("%c(%d): %d %d %d\n", ch++, j++, setPoints[i].x, setPoints[i].y, setPoints[i].z);
+}
 void print_ineq(Inequal_t* Ineq) {
 	int i, j;
 	char ch[] = { 'x', 'y', 'z', '\0' };
