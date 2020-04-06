@@ -32,20 +32,22 @@ int determinate_rate_ineq(int*);
 int check_linear_dep(int*);
 
 /* Vertex Enumeration (B1) Functions */
-int Calc_Point(Inequal_t , Inequal_t , Inequal_t );
+int Calc_Point(Inequal_t , Inequal_t , Inequal_t, int**, int* );
 void vertex_enumeration();
 int check_ident_point(point_t );
 int Gauss(int**, int*, int);
 
 /* Utilities Functions */
 // Input Files (main func)
-int inputFiles(int , char* );
+int inputFiles(int , char** );
 // NOD search
 int NOD(int, int);
 // Check memory allocation
 void MemCheck(void*);
-// Input inequality
+// Print inequality
 void print_ineq(Inequal_t*);
+// Print Points
+void print_points();
 
 
 
@@ -132,7 +134,7 @@ int inputFiles(int argc, char* argv[]) {
 			print_ineq(arrIneq);
 			
 			vertex_enumeration();
-
+			print_points();
 			break;
 
 		// Error
@@ -306,12 +308,23 @@ void vertex_enumeration() {
 			}
 		}
 	}
+}
+void print_points() {
+	int i;
+
+	// Normalization of coordinates of points
+	for(i = 0; i < countPoints; i++) {
+		if(setPoints[i].x <= 0 && setPoints[i].y <= 0 && setPoints[i].z <= 0) {
+			setPoints[i].x *= -1;
+			setPoints[i].y *= -1;
+			setPoints[i].z *= -1;
+		}
+	}
 
 	for (i = 0; i < countPoints; i++)
 		printf("%d %d %d\n", setPoints[i].x, setPoints[i].y, setPoints[i].z);
-
-	
 }
+
 int check_ident_point(point_t point) {
 	int i;
 
@@ -443,5 +456,3 @@ void MemCheck(void *mem) {
 		exit(0);
 	}
 }
-
- 
