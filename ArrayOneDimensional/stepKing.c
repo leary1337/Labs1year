@@ -49,15 +49,15 @@ void step(int *A, int n, int a, int b) {
             return;
 
         if(a < b)
-            step(A,n,++a,b);
+            step(A, n, ++a, b);
 
         if(a > b)
-            step(A,n,--a,b);
+            step(A, n, --a, b);
     }
     if(currStr < strFinish) {
         a += currStr*2;
         currStr++;
-        step(A,n,a,b);
+        step(A, n, a, b);
     }
     if(currStr > strFinish) {
         if(idxCheck(currStr, a) == 1) {
@@ -72,6 +72,6 @@ void step(int *A, int n, int a, int b) {
 
         currStr--;
         a -= currStr*2;
-        step(A,n,a,b);
+        step(A, n, a, b);
     }
 }
