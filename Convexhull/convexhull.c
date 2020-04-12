@@ -3,33 +3,34 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
-#include <locale.h>
 #define swap(t,a,b) {t temp; temp = a; a = b; b = temp;}
 #define N 3
 #define EPS 0.000001
 
 
 /* Convex Hull (A) Functions */
-int check_potential_faces(int **);
-int determinate_rate_ineq(int*);
-int check_linear_dep(int **, int*);
-int NOD(int , int );
+double *check_potential_faces(double **);
+double determinate_rate_ineq(double*);
+int check_linear_dep(double **, double*);
+int NOD(int , int);
 
 /* Vertex Enumeration (B1) Functions */
-double *vertex_enumeration(int **);
-int Calc_Point(int* , int* , int*);
+double *vertex_enumeration(double **);
+int Calc_Point(double* , double* , double*);
 int check_ident_point(double **);
-int check_potential_vertices(int **);
-int cramer(int [N][N], int [N]);
-double det(int [N][N]);
+int check_potential_vertices(double **);
+int cramer(double[N][N], double[N]);
+double det(double[N][N]);
 
 /* Skeleton's (B2) Functions */
-
+int skeleton(double **, double **, int );
+int create_graph(double **, double **, int **);
+void displayInfoFace(int *, int );
+void displayAdjacencyMatrix(int **);
 
 /* Utilities Functions */
 void print_points(double **);
-void print_ineq(int**, int);
-void normalization_points(double **);
+void print_ineq(double**, int, int);
 void MemCheck(void*);
 void ClearMemory(void**, int);
 
@@ -42,12 +43,10 @@ int main(int argc, char* argv[]) {
 	int i, j, size;
 	char modeWork;
 
-	// Point designation (Task A)
-	int **setPointsA;
-	// Point designation (Task B)
-	double **setPointsB;
+	// Point designation
+	double **setPoints;
 	// Inequality designation
-	int **arrIneq;
+	double **arrIneq;
 
 	FILE* fp = NULL;
 
@@ -76,11 +75,11 @@ int main(int argc, char* argv[]) {
 			countPoints = size;
 
 			// Память под координаты точек
-			setPointsA = (int**)malloc(countPoints * sizeof(int*));
-			MemCheck(setPointsA);
+			setPoints = (double**)malloc(countPoints * sizeof(double*));
+			MemCheck(setPoints);
 			for (i = 0; i < countPoints; i++) {
-				setPointsA[i] = (int*)malloc(countPoints * sizeof(int));
-				MemCheck(setPointsA[i]);
+				setPoints[i] = (double*)malloc(countPoints * sizeof(double));
+				MemCheck(setPoints[i]);
 			}
 
 			printf("Number of Points: %d\n", countPoints);
@@ -88,20 +87,21 @@ int main(int argc, char* argv[]) {
 			// Input and Output Dots
 			for (i = 0; i < countPoints; i++) {
 				for (j = 0; j < 3; j++) {
-					if (!(fscanf(fp, "%d", &setPointsA[i][j]))) {
+					if (!(fscanf(fp, "%lf", &setPoints[i][j]))) {
 						printf("\nIncorrect coordinate\n");
 						return 1;
 					}
-					printf("%d ", setPointsA[i][j]);
 				}
-				printf("\n");
 			}
-
-			arrIneq = check_potential_faces(setPointsA);
+			print_points(setPoints);
+			arrIneq = check_potential_faces(setPoints);
 			printf("Number of Faces: %d\n", countIneq);
-			print_ineq(arrIneq, countIneq);
+			print_ineq(arrIneq, 0, countIneq);
 
-			countIneq = 0;
+			//ClearMemory(setPoints, countPoints);
+			//ClearMemory(arrIneq, (countPoints * 7));
+			//countPoints = 0;
+			//countIneq = 0;
 			break;
 
 			// Hyperplane
@@ -111,16 +111,16 @@ int main(int argc, char* argv[]) {
 			countIneq = size;
 
 			// Память под неравенства
-			arrIneq = (int**)malloc(countIneq * sizeof(int*));
+			arrIneq = (double**)malloc(countIneq * sizeof(double*));
 			MemCheck(arrIneq);
 			for (i = 0; i < countIneq; i++) {
-				arrIneq[i] = (int*)malloc(4 * sizeof(int));
+				arrIneq[i] = (double*)malloc(4 * sizeof(double));
 				MemCheck(arrIneq[i]);
 			}
 
 			for (i = 0; i < size; i++) {
 				for (j = 0; j < 4; j++) {
-					if (!(fscanf(fp, "%d", &arrIneq[i][j]))) {
+					if (!(fscanf(fp, "%lf", &arrIneq[i][j]))) {
 						printf("\nIncorrect coefficient\n");
 						return 1;
 					}
@@ -128,21 +128,27 @@ int main(int argc, char* argv[]) {
 				arrIneq[i][3] *= -1; // Переносим в левую часть заранее
 			}
 			printf("Number of Faces: %d\n", countIneq);
-			print_ineq(arrIneq, countIneq);
+			print_ineq(arrIneq, 0, countIneq);
 
-			setPointsB = vertex_enumeration(arrIneq);
-			normalization_points(setPointsB);
+			setPoints = vertex_enumeration(arrIneq);
+
 			printf("Number of Verctices: %d\n", countPoints);
-			print_points(setPointsB);
+			print_points(setPoints);
+
+			//ClearMemory(setPoints, (countIneq * 7));
+			//ClearMemory(arrIneq, countIneq);
+			//countIneq = 0;
+			//countPoints = 0;
 			break;
+
 		default:
 			printf("\nType not selected or invalid type\n");
 			return 1;
 		}
+		skeleton(arrIneq, setPoints, countPoints);
 	}
 
-	// ClearMemory(setPoints, countPoints);
-	// ClearMemory(arrIneq, (countPoints*4));
+	
 	if (fclose(fp))
 		printf("File close Error!\n");
 
@@ -150,18 +156,18 @@ int main(int argc, char* argv[]) {
 }
 
 /* Convex Hull (A) Functions */
-int check_potential_faces(int **setPoints) {
+double *check_potential_faces(double **setPoints) {
 	int i, j, k, p, q;
-	int freeCoeff, check, halfspace, oops, sign, rate;
-	int tmp[4] = { 0 };
-	int vectA[3], vectB[3], normVect[3];
-	int **arrIneq;
+	int halfspace, oops, sign;
+	double tmp[4] = { 0 };
+	double vectA[3], vectB[3], normVect[3], freeCoeff, check, rate;
+	double **arrIneq;
 
 	// Система неравенств (Не знаю сколько памяти нужно!)
-	arrIneq = (int**)malloc((countPoints * 7) * sizeof(int*));
+	arrIneq = (double**)malloc((countPoints * 7) * sizeof(double*));
 	MemCheck(arrIneq);
 	for (i = 0; i < (countPoints * 7); i++) {
-		arrIneq[i] = (int*)malloc(4 * sizeof(int));
+		arrIneq[i] = (double*)malloc(4 * sizeof(double));
 		MemCheck(arrIneq[i]);
 	}
 
@@ -240,14 +246,15 @@ int check_potential_faces(int **setPoints) {
 
 	return arrIneq;
 }
-int determinate_rate_ineq(int* tmp) {
-	int rate;
+double determinate_rate_ineq(double* tmp) {
+	double rate;
 
-	rate = NOD(NOD(abs(tmp[0]), abs(tmp[1])), NOD(abs(tmp[2]), abs(tmp[3])));
+	rate = NOD(NOD(fabs(tmp[0]), fabs(tmp[1])), NOD(fabs(tmp[2]), fabs(tmp[3])));
 	return rate;
 }
-int check_linear_dep(int **arrIneq, int* tmp) {
-	int i, j, count1, rate;
+int check_linear_dep(double **arrIneq, double* tmp) {
+	int i, j, count1;
+	double rate;
 
 	rate = determinate_rate_ineq(tmp);
 
@@ -276,16 +283,16 @@ int NOD(int a, int b) {
 }
 
 /* Vertex Enumeration (B1) Functions */
-double *vertex_enumeration(int **arrIneq) {
-	int i, j, p, q, check;
-	double **setPointsB;
+double *vertex_enumeration(double **arrIneq) {
+	int i, j, p, q;
+	double **setPoints, check;
 
 	// Память под координаты точек (Не знаю сколько памяти нужно!)
-	setPointsB = (double**)malloc((countIneq*7) * sizeof(double*));
-	MemCheck(setPointsB);
+	setPoints = (double**)malloc((countIneq*7) * sizeof(double*));
+	MemCheck(setPoints);
 	for (i = 0; i < (countIneq * 7); i++) {
-		setPointsB[i] = (double*)malloc(3 * sizeof(double));
-		MemCheck(setPointsB[i]);
+		setPoints[i] = (double*)malloc(3 * sizeof(double));
+		MemCheck(setPoints[i]);
 	}
 
 	// Память под временный массив точки
@@ -300,10 +307,10 @@ double *vertex_enumeration(int **arrIneq) {
 				if (check = Calc_Point(arrIneq[i], arrIneq[j], arrIneq[p]))
 					continue;
 				else {
-					if (!check_ident_point(setPointsB)) {
+					if (!check_ident_point(setPoints)) {
 						if(!check_potential_vertices(arrIneq)) {
 							for (q = 0; q < 3; q++)
-								setPointsB[countPoints][q] = tmpPoint[q];
+								setPoints[countPoints][q] = tmpPoint[q];
 							countPoints++;
 						}
 					}
@@ -311,11 +318,11 @@ double *vertex_enumeration(int **arrIneq) {
 			}
 		}
 	}
-	return setPointsB;
+	return setPoints;
 }
-int Calc_Point(int* ineq1, int* ineq2, int* ineq3) {
+int Calc_Point(double* ineq1, double* ineq2, double* ineq3) {
 	int i, j;
-	int arrayTemp[N][N], b[N];
+	double arrayTemp[N][N], b[N];
 
 	for (j = 0; j < 3; j++) {
 		arrayTemp[0][j] = ineq1[j];
@@ -337,10 +344,10 @@ int Calc_Point(int* ineq1, int* ineq2, int* ineq3) {
 
 	return 0;
 }
-int cramer(int a[N][N], int b[N]) {
+int cramer(double a[N][N], double b[N]) {
 	int i, j, p;
 	double detA;
-	int tmp[N][N];
+	double tmp[N][N];
 
 
 	detA = det(a);
@@ -361,7 +368,7 @@ int cramer(int a[N][N], int b[N]) {
 
 	return 0;
 }
-double det(int A[N][N]) {
+double det(double A[N][N]) {
 	
 	return	A[0][0] * A[1][1] * A[2][2] +
 			A[0][1] * A[1][2] * A[2][0] +
@@ -384,8 +391,7 @@ int check_ident_point(double **setPoints) {
 
 	return 0;
 }
-// Подставляем полученные точки в неравенства
-int check_potential_vertices(int **arrIneq) {
+int check_potential_vertices(double **arrIneq) {
 	int i, j;
 	double res;
 
@@ -400,22 +406,10 @@ int check_potential_vertices(int **arrIneq) {
 
 	return 0;
 }
-// Normalization of coordinates of points
-void normalization_points(double **setPoints) {
-	int i, j;
-
-	for (i = 0; i < countPoints; i++) {
-		if (setPoints[i][0] <= 0 && setPoints[i][1] <= 0 && setPoints[i][2] <= 0) {
-			for (j = 0; j < 3; j++)
-				if (setPoints[i][j] != 0)
-					setPoints[i][j] *= -1;
-		}
-	}
-}
 
 /* Skeleton's (B2) Functions */
-int skeleton(int countPoints) {
-	int i;
+int skeleton(double **arrIneq, double **setPoints, int countPoints) {
+	int i, j;
 	int **adjMatrix;
 
 	// Память под Матрицу Смежности
@@ -426,62 +420,112 @@ int skeleton(int countPoints) {
 		MemCheck(adjMatrix[i]);
 	}
 
-}
-/*
-int create_graph(int **arrIneq, double **setPoints) {
-	int i, j, k, res_1, res_2, count;
-	int *edgePoints;
+	for (i = 0; i < countPoints; i++)
+		for (j = 0; j < countPoints; j++)
+			adjMatrix[i][j] = 0;
 
-	// Память под массив ребер (с запасиком)
-	edgePoints = (int*)malloc((countPoints*4) * sizeof(int));
-
-	for (i = 0; i < countIneq; i++) {
-		printInequalities(i, i + 1);
-		count = 0;
-		for (j = 0; j < countIneq; j++) {
-			if (i == j) continue;
-			for (k = 0; k < countPoints; k++) {
-				res_1 =
-					ineqArray[i].coeffs[0] * pointsArray[k].x +
-					ineqArray[i].coeffs[1] * pointsArray[k].y +
-					ineqArray[i].coeffs[2] * pointsArray[k].z +
-					ineqArray[i].free;
-				res_2 =
-					ineqArray[j].coeffs[0] * pointsArray[k].x +
-					ineqArray[j].coeffs[1] * pointsArray[k].y +
-					ineqArray[j].coeffs[2] * pointsArray[k].z +
-					ineqArray[j].free;
-
-				if (res_1 == 0 && res_2 == 0) {
-					edgePoints[count] = k;
-					count++;
-				}
-			}
-			if (count % 2 == 0 && count != 0) {
-				adjacencyMatrix[edgePoints[count - 2]][edgePoints[count - 1]] = 1;
-				adjacencyMatrix[edgePoints[count - 1]][edgePoints[count - 2]] = 1;
-			}
-			else if (count != 0) {
-				count--;
-				edgePoints[count] = -1;
-			}
-		}
-
-		printFaceInfo(edgePoints, count);
-		for (j = 0; j < 15; j++) edgePoints[j] = -1;
-	}
-
-	printAdjacencyMatrix();
+	create_graph(arrIneq, setPoints, adjMatrix);
 
 	return 0;
 }
-*/
+int create_graph(double **arrIneq, double **setPoints, int **adjMatrix) {
+	int i, j, k, p, countEdges, vert1, vert2;
+	int *arrayEdge;
+	double check1, check2;
+
+	// Память под массив ребер (с запасиком)
+	arrayEdge = (int*)malloc((countPoints*4) * sizeof(int));
+
+	printf("\n*Information about Faces*");
+	for (i = 0; i < countIneq; i++) {
+		printf("\nFace: ");
+		print_ineq(arrIneq, i, i + 1);
+		countEdges = 0;
+		for (j = 0; j < countIneq; j++) {
+			if (i == j) continue;
+			for (k = 0; k < countPoints; k++) {
+				check1 = check2 = 0;
+
+				for (p = 0; p < 3; p++) {
+					check1 += arrIneq[i][p] * setPoints[k][p];
+					check2 += arrIneq[j][p] * setPoints[k][p];
+				}
+				check1 += arrIneq[i][p];
+				check2 += arrIneq[j][p];
+
+				if (!check1 && !check2) {
+					arrayEdge[countEdges] = k;
+					countEdges++;
+				}
+			}
+			if (!(countEdges % 2) && countEdges) {
+				vert1 = arrayEdge[countEdges - 2];
+				vert2 = arrayEdge[countEdges - 1];
+				adjMatrix[vert1][vert2] = 1;
+				adjMatrix[vert2][vert1] = 1;
+			}
+			else if (countEdges) {
+				countEdges--;
+				arrayEdge[countEdges] = -1;
+			}
+		}
+		displayInfoFace(arrayEdge, countEdges);
+		for (j = 0; j < (countPoints * 4); j++)
+			arrayEdge[j] = -1;
+	}
+
+	displayAdjacencyMatrix(adjMatrix);
+
+	return 0;
+}
+void displayAdjacencyMatrix(int **adjMatrix) {
+	int i, j;
+
+	printf("\n\nAdjacency Matrix:\n  ");
+	for (i = 0; i < countPoints; i++) 
+		printf("%c ", 'A' + i);
+	for (i = 0; i < countPoints; i++) {
+		printf("\n%c ", 'A' + i);
+		for (j = 0; j < countPoints; j++) {
+			printf("%d ", adjMatrix[i][j]);
+		}
+	}
+	printf("\n");
+}
+void displayInfoFace(int *arrayEdge, int countEdges) {
+	int i, j;
+
+	printf("Edges: ");
+	for (i = 0; i < countEdges; i++) {
+		if (i % 2 == 0) {
+			if (arrayEdge[i] != -1 && arrayEdge[i + 1] != -1)
+				printf("%c%c ", 'A' + arrayEdge[i], 'A' + arrayEdge[i + 1]);
+			for (j = i + 1; j < countEdges; j++) {
+				if (arrayEdge[j] == arrayEdge[i] && arrayEdge[j + 1] == arrayEdge[i + 1])
+					arrayEdge[j] = -1;
+			}
+		}
+	}
+
+	printf("\nVertices: ");
+	for (i = 0; i < countEdges; i++) {
+		if (arrayEdge[i] != -1)
+			printf("%c ", 'A' + arrayEdge[i]);
+		for (j = i + 1; j < countEdges; j++) {
+			if (arrayEdge[j] == arrayEdge[i]) {
+				arrayEdge[j] = -1;
+			}
+		}
+	}
+	printf("\n");
+}
+
 /* Utilities Functions */
-void print_ineq(int** Ineq, int count) {
+void print_ineq(double** Ineq, int start, int count) {
 	int i, j;
 	char ch[] = { 'x', 'y', 'z', '\0' };
 
-	for (i = 0; i < count; i++) {
+	for (i = start; i < count; i++) {
 		for (j = 0; j < 3; j++) {
 			if (Ineq[i][j] != 0) {
 				if (Ineq[i][j] == 1 && j != 0)
@@ -494,17 +538,17 @@ void print_ineq(int** Ineq, int count) {
 					printf("-%c", ch[j]);
 
 				if (Ineq[i][j] > 1 && j != 0)
-					printf("+%d%c", Ineq[i][j], ch[j]);
+					printf("+%g%c", (fabs(Ineq[i][j]) < EPS) ? 0.0 : Ineq[i][j], ch[j]);
 
 				if (Ineq[i][j] > 1 && j == 0)
-					printf("%d%c", Ineq[i][j], ch[j]);
+					printf("%g%c", (fabs(Ineq[i][j]) < EPS) ? 0.0 : Ineq[i][j], ch[j]);
 
 				if (Ineq[i][j] < -1)
-					printf("%d%c", Ineq[i][j], ch[j]);
+					printf("%g%c", (fabs(Ineq[i][j]) < EPS) ? 0.0 : Ineq[i][j], ch[j]);
 			}
 		}
 		// Минус так как переносим в правую часть неравенства
-		printf("<=%d\n", -Ineq[i][3]);
+		printf("<=%g\n", (fabs(Ineq[i][j]) < EPS) ? 0.0 : -Ineq[i][3]);
 	}
 }
 void print_points(double **setPoints) {
