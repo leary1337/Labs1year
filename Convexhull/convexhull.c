@@ -3,52 +3,62 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <conio.h>
+#include <SFML/Graphics.hpp>
+using namespace sf;
 #define swap(t,a,b) {t temp; temp = a; a = b; b = temp;}
 #define N 3
 #define EPS 0.000001
 
-
 /* Convex Hull (A) Functions */
-double *check_potential_faces(double **);
+double **check_potential_faces(double **);
 double determinate_rate_ineq(double*);
 int check_linear_dep(double **, double*);
-int NOD(int , int);
+int NOD(int, int);
 
 /* Vertex Enumeration (B1) Functions */
-double *vertex_enumeration(double **);
-int Calc_Point(double* , double* , double*);
+double **vertex_enumeration(double **);
+int Calc_Point(double*, double*, double*);
 int check_ident_point(double **);
 int check_potential_vertices(double **);
 int cramer(double[N][N], double[N]);
 double det(double[N][N]);
 
 /* Skeleton's (B2) Functions */
-int skeleton(double **, double **, int );
+int skeleton(double **, double **, int);
 int create_graph(double **, double **, int **);
-void displayInfoFace(int *, int );
+void displayInfoFace(int *, int);
 void displayAdjacencyMatrix(int **);
+
+/* Collision Detection (B3) Functions */
+int CollisionDetection(FILE *, FILE *);
+double **Work_in_FileH(FILE *);
+double **Work_in_FileV(FILE *);
+
+/* Graphics */
+int graphics(double **, double **, int , int );
 
 /* Utilities Functions */
 void print_points(double **);
 void print_ineq(double**, int, int);
 void MemCheck(void*);
-void ClearMemory(void**, int);
 
 /* Global vars */
-int countIneq = 0, countPoints = 0;
-double *tmpPoint;
+int countIneq = 0, countPoints = 0, 
+	countPoints1 = 0, countPoints2 = 0;
+double **setPoints, **setPoints1, **setPoints2, *tmpPoint;
+int **adjMatrix, **adjMatrix1, **adjMatrix2;
 double x[N];
 
 int main(int argc, char* argv[]) {
 	int i, j, size;
 	char modeWork;
 
-	// Point designation
-	double **setPoints;
 	// Inequality designation
-	double **arrIneq;
+	double **arrIneq = NULL;
 
-	FILE* fp = NULL;
+	FILE* fp, *f2;
+	fp = f2 = NULL;
 
 	if (argc == 2) {
 		fp = fopen(argv[1], "rt");
@@ -94,14 +104,11 @@ int main(int argc, char* argv[]) {
 				}
 			}
 			print_points(setPoints);
+
 			arrIneq = check_potential_faces(setPoints);
 			printf("Number of Faces: %d\n", countIneq);
 			print_ineq(arrIneq, 0, countIneq);
 
-			//ClearMemory(setPoints, countPoints);
-			//ClearMemory(arrIneq, (countPoints * 7));
-			//countPoints = 0;
-			//countIneq = 0;
 			break;
 
 			// Hyperplane
@@ -135,19 +142,56 @@ int main(int argc, char* argv[]) {
 			printf("Number of Verctices: %d\n", countPoints);
 			print_points(setPoints);
 
-			//ClearMemory(setPoints, (countIneq * 7));
-			//ClearMemory(arrIneq, countIneq);
-			//countIneq = 0;
-			//countPoints = 0;
 			break;
 
 		default:
 			printf("\nType not selected or invalid type\n");
 			return 1;
 		}
-		skeleton(arrIneq, setPoints, countPoints);
-	}
 
+		skeleton(arrIneq, setPoints, countPoints);
+		graphics(setPoints, NULL, countPoints, 0);
+
+		// Clear Memory
+		for (i = 0; i < size; i++)
+			if (setPoints[i] != NULL) free(setPoints[i]);
+		if (setPoints != NULL) free(setPoints);
+
+		for (i = 0; i < countIneq; i++)
+			if (arrIneq[i] != NULL) free(arrIneq[i]);
+		if (arrIneq != NULL) free(arrIneq);
+	}
+	else {
+		// Читает два файла
+		fp = fopen(argv[1], "r");
+		if (fp == NULL) {
+			printf("\nCould not open file #1.\n");
+			return 1;
+		}
+
+		f2 = fopen(argv[2], "r");
+		if (f2 == NULL) {
+			printf("\nCould not open file #2.\n");
+			return 1;
+		}
+
+		if (CollisionDetection(fp, f2) == 0)
+			printf("\nPolyhedrons intersect (Collision Detected)!\n");
+		else
+			printf("nPolyhedrons don't intersect (Collision Undetected)!\n");
+
+		if (fclose(f2))
+			printf("File #2 close Error!\n");
+
+		// Clear Memory
+		for (i = 0; i < countPoints1; i++)
+			if (setPoints1[i] != NULL) free(setPoints1[i]);
+		if (setPoints1 != NULL) free(setPoints1);
+
+		for (i = 0; i < countPoints2; i++)
+			if (setPoints2[i] != NULL) free(setPoints2[i]);
+		if (setPoints2 != NULL) free(setPoints2);
+	}
 	
 	if (fclose(fp))
 		printf("File close Error!\n");
@@ -156,7 +200,7 @@ int main(int argc, char* argv[]) {
 }
 
 /* Convex Hull (A) Functions */
-double *check_potential_faces(double **setPoints) {
+double **check_potential_faces(double **setPoints) {
 	int i, j, k, p, q;
 	int halfspace, oops, sign;
 	double tmp[4] = { 0 };
@@ -283,12 +327,12 @@ int NOD(int a, int b) {
 }
 
 /* Vertex Enumeration (B1) Functions */
-double *vertex_enumeration(double **arrIneq) {
+double **vertex_enumeration(double **arrIneq) {
 	int i, j, p, q;
 	double **setPoints, check;
 
 	// Память под координаты точек (Не знаю сколько памяти нужно!)
-	setPoints = (double**)malloc((countIneq*7) * sizeof(double*));
+	setPoints = (double**)malloc((countIneq * 7) * sizeof(double*));
 	MemCheck(setPoints);
 	for (i = 0; i < (countIneq * 7); i++) {
 		setPoints[i] = (double*)malloc(3 * sizeof(double));
@@ -308,7 +352,7 @@ double *vertex_enumeration(double **arrIneq) {
 					continue;
 				else {
 					if (!check_ident_point(setPoints)) {
-						if(!check_potential_vertices(arrIneq)) {
+						if (!check_potential_vertices(arrIneq)) {
 							for (q = 0; q < 3; q++)
 								setPoints[countPoints][q] = tmpPoint[q];
 							countPoints++;
@@ -337,7 +381,7 @@ int Calc_Point(double* ineq1, double* ineq2, double* ineq3) {
 		return 1;
 	}
 	else {
-		for (i = 0; i < 3; i++) 
+		for (i = 0; i < 3; i++)
 			tmpPoint[i] = x[i];
 
 	}
@@ -356,8 +400,8 @@ int cramer(double a[N][N], double b[N]) {
 		return 1;
 
 	for (i = 0; i < N; i++) {
-		for (j = 0; j < N; j++) 
-			for (p = 0; p < N; p++) 
+		for (j = 0; j < N; j++)
+			for (p = 0; p < N; p++)
 				tmp[j][p] = a[j][p];
 
 		for (p = 0; p < N; p++)
@@ -369,13 +413,13 @@ int cramer(double a[N][N], double b[N]) {
 	return 0;
 }
 double det(double A[N][N]) {
-	
+
 	return	A[0][0] * A[1][1] * A[2][2] +
-			A[0][1] * A[1][2] * A[2][0] +
-			A[1][0] * A[2][1] * A[0][2] -
-			A[2][0] * A[1][1] * A[0][2] -
-			A[1][0] * A[0][1] * A[2][2] -
-			A[2][1] * A[1][2] * A[0][0];
+		A[0][1] * A[1][2] * A[2][0] +
+		A[1][0] * A[2][1] * A[0][2] -
+		A[2][0] * A[1][1] * A[0][2] -
+		A[1][0] * A[0][1] * A[2][2] -
+		A[2][1] * A[1][2] * A[0][0];
 }
 int check_ident_point(double **setPoints) {
 	int i, j, check;
@@ -395,12 +439,12 @@ int check_potential_vertices(double **arrIneq) {
 	int i, j;
 	double res;
 
-	for(i = 0; i < countIneq; i++) {
+	for (i = 0; i < countIneq; i++) {
 		res = 0;
-		for(j = 0; j < 3; j++) {
+		for (j = 0; j < 3; j++) {
 			res += arrIneq[i][j] * tmpPoint[j];
 		}
-		if(res > (-arrIneq[i][3]))
+		if (res > (-arrIneq[i][3]))
 			return 1;
 	}
 
@@ -410,7 +454,6 @@ int check_potential_vertices(double **arrIneq) {
 /* Skeleton's (B2) Functions */
 int skeleton(double **arrIneq, double **setPoints, int countPoints) {
 	int i, j;
-	int **adjMatrix;
 
 	// Память под Матрицу Смежности
 	adjMatrix = (int**)malloc(countPoints * sizeof(int*));
@@ -434,7 +477,7 @@ int create_graph(double **arrIneq, double **setPoints, int **adjMatrix) {
 	double check1, check2;
 
 	// Память под массив ребер (с запасиком)
-	arrayEdge = (int*)malloc((countPoints*4) * sizeof(int));
+	arrayEdge = (int*)malloc((countPoints * 4) * sizeof(int));
 
 	printf("\n*Information about Faces*");
 	for (i = 0; i < countIneq; i++) {
@@ -482,7 +525,7 @@ void displayAdjacencyMatrix(int **adjMatrix) {
 	int i, j;
 
 	printf("\n\nAdjacency Matrix:\n  ");
-	for (i = 0; i < countPoints; i++) 
+	for (i = 0; i < countPoints; i++)
 		printf("%c ", 'A' + i);
 	for (i = 0; i < countPoints; i++) {
 		printf("\n%c ", 'A' + i);
@@ -518,6 +561,269 @@ void displayInfoFace(int *arrayEdge, int countEdges) {
 		}
 	}
 	printf("\n");
+}
+
+/* Collision Detection (B3) Functions */
+int CollisionDetection(FILE *f1, FILE *f2) {
+	int i, j, p, q;
+	char modework1, modework2;
+	double **differencePoints, **difArrIneq;
+	setPoints = setPoints1 = setPoints2 = NULL;
+
+	if (!(fscanf(f1, "%c", &modework1))) {
+		printf("\nIncorrect work type (file #1)\n");
+		return 2;
+	}
+	if (!(fscanf(f2, "%c", &modework2))) {
+		printf("\nIncorrect work type (file #2)\n");
+		return 2;
+	}
+
+	printf("***File #1***\n");
+	if (modework1 == 'H') {
+		setPoints1 = Work_in_FileH(f1);
+		countPoints1 = countPoints;
+	}
+	else if (modework1 == 'V') {
+		setPoints1 = Work_in_FileV(f1);
+		countPoints1 = countPoints;
+	}
+
+	countPoints = countIneq = 0;
+	adjMatrix1 = adjMatrix;
+
+	printf("***File #2***\n");
+	if (modework2 == 'H') {
+		setPoints2 = Work_in_FileH(f2);
+		countPoints2 = countPoints;
+	}
+	else if (modework2 == 'V') {
+		setPoints2 = Work_in_FileV(f2);
+		countPoints2 = countPoints;
+	}
+
+	adjMatrix2 = adjMatrix;
+
+	// setPoints1 - Координаты вершин из 1 файла; setPoints2 - Координаты вершин из 2 файла
+	differencePoints = (double**)malloc((countPoints*countPoints1) * sizeof(double*));
+	MemCheck(differencePoints);
+	for (i = 0; i < (countPoints * countPoints1); i++) {
+		differencePoints[i] = (double*)malloc(3 * sizeof(double));
+		MemCheck(differencePoints[i]);
+	}
+
+	q = 0;
+	for (i = 0; i < countPoints1; i++) {
+		for (j = 0; j < countPoints2; j++) {
+			for (p = 0; p < 3; p++) {
+				differencePoints[q][p] = setPoints1[i][p] - setPoints2[j][p];
+			}
+			q++;
+		}
+	}
+	countIneq = 0;
+	countPoints = countPoints1 * countPoints2;
+	difArrIneq = check_potential_faces(differencePoints);
+	// Рисуем картиночки
+	graphics(setPoints1, setPoints2, countPoints1, 1);
+
+	// Проверяем
+	for (i = 0; i < countIneq; i++) {
+		if (0 > (-difArrIneq[i][3]))
+			return 1;
+	}
+
+	for (i = 0; i < countPoints; i++)
+		free(differencePoints[i]);
+	free(differencePoints);
+
+	return 0;
+}
+double **Work_in_FileH(FILE *fp) {
+	int i, j;
+	double **arrIneq;
+
+	if (!(fscanf(fp, "%d", &countIneq))) {
+		printf("\nIncorrect number of dots\n");
+		return NULL;
+	}
+	// Память под неравенства
+	arrIneq = (double**)malloc(countIneq * sizeof(double*));
+	MemCheck(arrIneq);
+	for (i = 0; i < countIneq; i++) {
+		arrIneq[i] = (double*)malloc(4 * sizeof(double));
+		MemCheck(arrIneq[i]);
+	}
+
+	for (i = 0; i < countIneq; i++) {
+		for (j = 0; j < 4; j++) {
+			if (!(fscanf(fp, "%lf", &arrIneq[i][j]))) {
+				printf("\nIncorrect coefficient\n");
+				return NULL;
+			}
+		}
+		arrIneq[i][3] *= -1; // Переносим в левую часть заранее
+	}
+	printf("Number of Faces: %d\n", countIneq);
+	print_ineq(arrIneq, 0, countIneq);
+
+	setPoints = vertex_enumeration(arrIneq);
+
+	printf("Number of Verctices: %d\n", countPoints);
+	print_points(setPoints);
+
+	skeleton(arrIneq, setPoints, countPoints);
+	return setPoints;
+}
+double **Work_in_FileV(FILE *fp) {
+	int i, j;
+	double **arrIneq;
+
+	if (!(fscanf(fp, "%d", &countPoints))) {
+		printf("\nIncorrect number of dots\n");
+		return NULL;
+	}
+
+	// Память под координаты точек
+	setPoints = (double**)malloc(countPoints * sizeof(double*));
+	MemCheck(setPoints);
+	for (i = 0; i < countPoints; i++) {
+		setPoints[i] = (double*)malloc(countPoints * sizeof(double));
+		MemCheck(setPoints[i]);
+	}
+
+	printf("Number of Points: %d\n", countPoints);
+
+	// Input and Output Dots
+	for (i = 0; i < countPoints; i++) {
+		for (j = 0; j < 3; j++) {
+			if (!(fscanf(fp, "%lf", &setPoints[i][j]))) {
+				printf("\nIncorrect coordinate\n");
+				return NULL;
+			}
+		}
+	}
+	print_points(setPoints);
+	arrIneq = check_potential_faces(setPoints);
+	printf("Number of Faces: %d\n", countIneq);
+	print_ineq(arrIneq, 0, countIneq);
+
+	skeleton(arrIneq, setPoints, countPoints);
+
+	return setPoints;
+}
+
+/* Graphics */
+int graphics(double **points1, double **points2, int size, int type) {
+	int i;
+
+	sf::RenderWindow window(sf::VideoMode(800, 800), "Graphics");
+	sf::Font font;
+	font.loadFromFile("arial.ttf");
+
+	sf::Text wordX, wordY, wordZ;
+	wordX.setString("X");
+	wordY.setString("Y");
+	wordZ.setString("Z");
+	wordX.setFont(font);
+	wordY.setFont(font);
+	wordZ.setFont(font);
+	wordX.setCharacterSize(16);
+	wordY.setCharacterSize(16);
+	wordZ.setCharacterSize(16);
+	wordX.setFillColor(sf::Color::Black);
+	wordY.setFillColor(sf::Color::Black);
+	wordZ.setFillColor(sf::Color::Black);
+	wordX.setPosition(700, 400);
+	wordY.setPosition(200, 600);
+	wordZ.setPosition(400, 100);
+	
+	
+	sf::VertexArray xyz(sf::Lines, 6);
+	xyz[0].position = sf::Vector2f(400, 400);
+	xyz[1].position = sf::Vector2f(700, 400);
+	xyz[2].position = sf::Vector2f(400, 400);
+	xyz[3].position = sf::Vector2f(400, 100);
+	xyz[4].position = sf::Vector2f(400, 400);
+	xyz[5].position = sf::Vector2f(200, 600);
+
+	for (i = 0; i < 6; i++)
+		xyz[i].color = sf::Color::Blue;
+
+
+	sf::VertexArray line(sf::LinesStrip, 2);
+
+	while (window.isOpen())
+	{
+		sf::Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == sf::Event::Closed)
+				window.close();
+		}
+
+		window.clear(Color::White);
+		window.draw(xyz);
+		window.draw(wordX);
+		window.draw(wordY);
+		window.draw(wordZ);
+
+		if (type == 1) {
+			for (i = 0; i < countPoints1; i++) {
+				for (int j = 0; j < countPoints1; j++) {
+					if (j == i) continue;
+					line[0].position.x = 400 + points1[i][0] * 100 - 40 * points1[i][1];
+					line[0].position.y = 400 - points1[i][2] * 100 + 40 * points1[i][1];
+
+					if (adjMatrix1[i][j] == 1) {
+						line[1].position.x = 400 + points1[j][0] * 100 - 40 * points1[j][1];
+						line[1].position.y = 400 - points1[j][2] * 100 + 40 * points1[j][1];
+						line[0].color = sf::Color::Green;
+						line[1].color = sf::Color::Green;
+						window.draw(line);
+					}
+				}
+			}
+			
+			for (i = 0; i < countPoints2; i++) {
+				for (int j = 0; j < countPoints2; j++) {
+					if (j == i) continue;
+					line[0].position.x = 400 + points2[i][0] * 100 - 40 * points2[i][1];
+					line[0].position.y = 400 - points2[i][2] * 100 + 40 * points2[i][1];
+
+					if (adjMatrix2[i][j] == 1) {
+						line[1].position.x = 400 + points2[j][0] * 100 - 40 * points2[j][1];
+						line[1].position.y = 400 - points2[j][2] * 100 + 40 * points2[j][1];
+						line[0].color = sf::Color::Red;
+						line[1].color = sf::Color::Red;
+						window.draw(line);
+					}
+				}
+
+			}
+		}
+		else {
+			for (i = 0; i < size; i++) {
+				for (int j = 0; j < size; j++) {
+					if (j == i) continue;
+					line[0].position.x = 400 + points1[i][0] * 100 - 40 * points1[i][1];
+					line[0].position.y = 400 - points1[i][2] * 100 + 40 * points1[i][1];
+
+					if (adjMatrix[i][j] == 1) {
+						line[1].position.x = 400 + points1[j][0] * 100 - 40 * points1[j][1];
+						line[1].position.y = 400 - points1[j][2] * 100 + 40 * points1[j][1];
+						line[0].color = sf::Color::Green;
+						line[1].color = sf::Color::Green;
+						window.draw(line);
+					}
+				}
+			}
+		}
+
+		window.display();
+	}
+
+	return 0;
 }
 
 /* Utilities Functions */
@@ -576,16 +882,7 @@ void print_points(double **setPoints) {
 		}
 	}
 
-	
-}
-void ClearMemory(void** mem, int size) {
-	int i;
-	for (i = 0; i < size; i++) {
-		if(mem[i] != NULL)
-			free(mem[i]);
-	}
-	if(mem != NULL)
-		free(mem);
+
 }
 void MemCheck(void* mem) {
 	if (mem == NULL) {
