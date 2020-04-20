@@ -36,5 +36,6 @@ int main() {
 	// Preparation and execution of the main task
 	prepare_for_task(adjencency_Matrix, countVertices);
 	
+	ClearMemory(adjencency_Matrix, countVertices);
 	return 0;
 }
