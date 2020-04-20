@@ -34,6 +34,13 @@ void prepare_for_task(int **adjencency_Matrix, int countVertices) {
 	// Let's go do the task
 	dfs_ap(adjencency_Matrix, disc, low, visited, parent, ArtPoints, 0, countVertices);
 	print_art_point(ArtPoints, countVertices);
+
+	// Clear memory
+	free(disc);
+	free(low);
+	free(parent);
+	free(visited);
+	free(ArtPoints);
 }
 
 // Depth search and articulation point calculation
