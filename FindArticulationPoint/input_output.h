@@ -9,5 +9,7 @@ int **fill_adjencency_Matrix(int **adjencency_Matrix, int countVertices);
 void display_adjencency_Matrix(int **adjencency_Matrix, int countVertices);
 // Getting the number of vertices in the graph from the User
 int get_num_vertices();
+// Clear Memory
+void ClearMemory(void **mem, int size);
 
 #endif // INPUT_OUTPUT
