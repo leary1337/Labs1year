@@ -70,3 +70,12 @@ int get_num_vertices() {
 
 	return countVertices;
 }
+
+// Clear Memory
+void ClearMemory(void **mem, int size) {
+	int i;
+	for (i = 0; i < size; i++) {
+		free(mem[i]);
+	}
+	free(mem);
+}
