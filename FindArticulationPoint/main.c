@@ -14,28 +14,28 @@
 
 int main() {
 	int countVertices;
-	int **adjencency_Matrix = 0;
+	int **adjencencyMatrix = 0;
 
 	// Get the number of vertices from the user
-	if(!(countVertices = get_num_vertices()))
+	if(!(countVertices = get_numVertices()))
 		return 0;
 
 	// Initialize the adjacency matrix
-	if(!(adjencency_Matrix = init_adjencency_Matrix(adjencency_Matrix, countVertices)))
+	if(!(adjencencyMatrix = init_adjencencyMatrix(adjencencyMatrix, countVertices)))
 		return 1;
 
 	// Fill in the adjacency matrix (this is done by the user)
-	if(!(adjencency_Matrix = fill_adjencency_Matrix(adjencency_Matrix, countVertices))) {
+	if(!(adjencencyMatrix = fill_adjencencyMatrix(adjencencyMatrix, countVertices))) {
 		printf("Incorrect coefficient in Adjencency Matrix");
 		return 0;
 	}
 
 	// Display the resulting adjacency matrix on the screen
-	display_adjencency_Matrix(adjencency_Matrix, countVertices);
+	display_adjencencyMatrix(adjencencyMatrix, countVertices);
 
 	// Preparation and execution of the main task
-	prepare_for_task(adjencency_Matrix, countVertices);
+	prepare_and_run(adjencencyMatrix, countVertices);
 	
-	ClearMemory(adjencency_Matrix, countVertices);
+	ClearMemory(adjencencyMatrix, countVertices);
 	return 0;
 }
