@@ -12,6 +12,45 @@
 *	Author: Kalabin Danil
 */
 
+/*		TESTS:
+*	Input: 
+	3
+	1 2 3
+	3 1 4
+	4 2 1
+	4
+	1 2 1 2
+*	Output:
+	1
+
+*	Input: 
+	1
+	1 2 3
+	4
+	1 2 1 2
+*	Output:
+	3
+	3
+
+*	Input: 
+	1
+	1 2 3
+	3
+	4 5 6
+*	Output:
+	6
+	5
+	4
+
+*	Input: 
+	1
+	1 0 3
+	3
+	4 5 6
+*	Output:
+	Incorrect name of chemical element
+*/
+
 #include <iostream>
 #include <stack>
 #include "utilities.h"
