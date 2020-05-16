@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stack>
 #include "utilities.h"
 
 using namespace std;
