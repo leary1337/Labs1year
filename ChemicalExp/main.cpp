@@ -13,13 +13,16 @@
 */
 
 #include <iostream>
+#include <stack>
 #include "utilities.h"
+#include "mixed.h"
 
 using namespace std;
 
 int main() {
 	int numPairs, numMixed;
 	int **table = NULL, *chainElem = NULL;
+	stack <int> testTube;
 
 	numPairs = get_num_pairs();
 	if (!(is_correct_nums(numPairs)))
@@ -38,6 +41,10 @@ int main() {
 
 	if(!(chainElem = fill_chain_elem(chainElem, numMixed)))
 		return 0;
+
+	testTube = put_elem(chainElem, numMixed, table, numPairs);
+	
+	print_testTube(testTube);
 
 	return 0;
 }

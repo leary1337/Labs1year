@@ -118,3 +118,13 @@ int *fill_chain_elem(int *chainElem, int numMixed) {
 
 	return chainElem;
 }
+
+// Вывод в консоль пробирки после проведения опыта
+void print_testTube(stack<int> &testTube) {
+	cout << "Result of mixed:\n";
+	
+	while(!testTube.empty()) {
+		cout << testTube.top() << endl;
+		testTube.pop();
+	}
+}
