@@ -1,4 +1,5 @@
 #pragma once
+#include "Stack.h"
 using namespace std;
 
 // Функция смешивания элементов по таблице взаимодействия
@@ -9,8 +10,8 @@ using namespace std;
 // testTube - пробирка (непосредственно стэк),
 // numPairs - кол-во пар элементов в таблице, 
 // 	которые образуют взаимодействие (кол-во строк в таблице)
-void mixed(int *chainElem, int numMixed, int **table, stack <int> &testTube, int numPairs);
+void mixed(int *chainElem, int numMixed, int **table, Stack &testTube, int numPairs);
 // Функция изначально кладет первый элемент в пробирку и далее запускает функцию mixed, 
 // 	которая продолжит класть элементы и проверять их на взаимодействие, если оно обнаружено в таблице
 // 		тогда смешаем и запишем результат
-stack <int> put_elem(int *chainElem, int numMixed, int **table, int numPairs);
+Stack put_elem(int *chainElem, int numMixed, int **table, int numPairs);

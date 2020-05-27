@@ -1,4 +1,5 @@
 #pragma once 
+#include "Stack.h"
 using namespace std;
 
 // Инициализация таблицы взаимодействия веществ
@@ -18,4 +19,4 @@ int get_num_mixed();
 // Ввод пользователем элементов для опыта
 int *fill_chain_elem(int *chainElem, int numMixed);
 // Вывод в консоль пробирки после проведения опыта
-void print_testTube(stack<int> &testTube);
+void print_testTube(Stack &testTube);

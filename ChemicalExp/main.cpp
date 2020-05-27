@@ -52,16 +52,16 @@
 */
 
 #include <iostream>
-#include <stack>
 #include "utilities.h"
 #include "mixed.h"
+#include "Stack.h"
 
 using namespace std;
 
 int main() {
 	int numPairs, numMixed;
 	int **table = NULL, *chainElem = NULL;
-	stack <int> testTube;
+	Stack testTube;
 
 	numPairs = get_num_pairs();
 	if (!(is_correct_nums(numPairs)))

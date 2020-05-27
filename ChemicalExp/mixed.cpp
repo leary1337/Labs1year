@@ -1,6 +1,6 @@
 #include <iostream>
-#include <stack>
 #include "mixed.h"
+#include "Stack.h"
 
 using namespace std;
 
@@ -12,14 +12,14 @@ using namespace std;
 // testTube - пробирка (непосредственно стэк),
 // numPairs - кол-во пар элементов в таблице, 
 // 	которые образуют взаимодействие (кол-во строк в таблице)
-void mixed(int *chainElem, int numMixed, int **table, stack <int> &testTube, int numPairs) {
+void mixed(int *chainElem, int numMixed, int **table, Stack &testTube, int numPairs) {
 	int i, j;
 	bool check;
 
 	for (i = 1; i < numMixed; i++) {
 		check = true;
 		for (j = 0; j < numPairs; j++) {
-			if (testTube.top() == table[j][0] && chainElem[i] == table[j][1]) {
+			if (testTube.Top() == table[j][0] && chainElem[i] == table[j][1]) {
 				testTube.pop();
 				testTube.push(table[j][2]);
 				check = true;
@@ -38,8 +38,8 @@ void mixed(int *chainElem, int numMixed, int **table, stack <int> &testTube, int
 // Функция изначально кладет первый элемент в пробирку и далее запускает функцию mixed, 
 // 	которая продолжит класть элементы и проверять их на взаимодействие, если оно обнаружено в таблице
 // 		тогда смешаем и запишем результат
-stack <int> put_elem(int *chainElem, int numMixed, int **table, int numPairs) {
-	stack <int>  testTube;
+Stack put_elem(int *chainElem, int numMixed, int **table, int numPairs) {
+	Stack testTube;
 
 	testTube.push(chainElem[0]);
 
