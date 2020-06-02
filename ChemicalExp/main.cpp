@@ -54,14 +54,14 @@
 #include <iostream>
 #include "utilities.h"
 #include "mixed.h"
-#include "Stack.h"
+#include "MyStack.h"
 
 using namespace std;
 
 int main() {
 	int numPairs, numMixed;
 	int **table = NULL, *chainElem = NULL;
-	Stack testTube;
+	MyStack <int> testTube;
 
 	numPairs = get_num_pairs();
 	if (!(is_correct_nums(numPairs)))
@@ -82,8 +82,13 @@ int main() {
 		return 0;
 
 	testTube = put_elem(chainElem, numMixed, table, numPairs);
+
+	cout << "Result of mixed:\n";
 	
-	print_testTube(testTube);
+	while(!testTube.isEmpty()) {
+		cout << testTube.getTop() << endl;
+		testTube.pop();
+	}
 
 	return 0;
 }

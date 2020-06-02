@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Stack.h"
+#include "MyStack.h"
 #include "utilities.h"
 
 using namespace std;
@@ -121,11 +121,11 @@ int *fill_chain_elem(int *chainElem, int numMixed) {
 }
 
 // Вывод в консоль пробирки после проведения опыта
-void print_testTube(Stack &testTube) {
+void print_testTube(MyStack <int> &testTube) {
 	cout << "Result of mixed:\n";
 	
 	while(!testTube.isEmpty()) {
-		cout << testTube.Top() << endl;
+		cout << testTube.getTop() << endl;
 		testTube.pop();
 	}
 }
