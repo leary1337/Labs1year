@@ -39,5 +39,4 @@ private:
     int top;
 };
 
-#include "MyStack.cpp"
 #endif
