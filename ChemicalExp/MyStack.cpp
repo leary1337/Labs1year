@@ -1,40 +1,38 @@
-#ifdef _MYSTACK_
+#include "MyStack.h"
 #include <stdexcept>
 
 template <class T>
 MyStack<T>::MyStack() {
-  size = 10;
-  top = 0;
-  arr = new T[size];
+    size = 10;
+    top = 0;
+    arr = new T[size];
 }
 
 template <class T>
 MyStack<T>::MyStack(int n) {
-  size = n;
-  top = 0;
-  arr = new T[size];
+    size = n;
+    top = 0;
+    arr = new T[size];
 }
 
 // Destructor
 template <class T>
 MyStack<T>::~MyStack(void) {
-  delete[] arr;
+    delete[] arr;
 }
 
 template <class T>
 bool MyStack<T>::isFull() {
-    if (top == size) {   
+    if (top == size)  
         return true;
-    }
     else
         return false;
 }
 
 template <class T>
 bool MyStack<T>::isEmpty() {
-    if (top == 0) {   
+    if (top == 0) 
         return true;
-    }
     else
         return false;
 }
@@ -51,21 +49,18 @@ void MyStack<T>::push(T x) {
 
 template <class T>
 void MyStack<T>::pop() {
-    if(!isEmpty()) {
+    if(!isEmpty())
         top--;
-    }
-    else {
+    else
         throw std::runtime_error("stack is empty");
-    }
 }
 
 template <class T>
 T MyStack<T>::getTop() {
     if (!isEmpty())
         return arr[top-1];
-    else {
+    else
         throw std::runtime_error("stack is empty");
-    }
 }
 
 template <class T>
@@ -78,4 +73,3 @@ void MyStack<T>::print() {
     else
         std::cout << "Stack is empty\n";
 }
-#endif
